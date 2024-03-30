@@ -22,3 +22,23 @@ export const handleRegister = async (req, res) => {
 		res.status(500).json({ error: 'Failed to register' })
 	}
 }
+
+export const handleLogin = async (req, res) => {
+	const { username, password } = req.body
+	if (!username || !password) {
+		return res
+			.status(400)
+			.json({ message: 'Username and password are required.' })
+	}
+
+	const foundUser = await User.findOne({ username }).exec()
+	if (!foundUser) return res.sendStatus(401) //Unauthorized
+
+	const match = await bcrypt.compare(password, foundUser.password)
+
+	if (match) {
+		res.status(200).json({ success: 'Logged in!' })
+	} else {
+		res.sendStatus(401)
+	}
+}
