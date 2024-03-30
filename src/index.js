@@ -1,6 +1,7 @@
 import express from "express";
 import { connectToMongoDB } from "./database/mongo.js";
 import productRouter from "./routes/product-routes.js";
+import authRouter from "./routes/auth-routes.js";
 const app = express();
 const port = 3000;
 
@@ -14,6 +15,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/products', productRouter);
+app.use('/auth', authRouter)
 
 
 
