@@ -1,4 +1,5 @@
 import express from 'express'
+import cookieParser from 'cookie-parser'
 import { connectToMongoDB } from './database/mongo.js'
 import productRouter from './routes/product-routes.js'
 import authRouter from './routes/auth-routes.js'
@@ -8,6 +9,7 @@ const port = 3000
 connectToMongoDB()
 
 app.use(express.json())
+app.use(cookieParser())
 
 app.get('/', (req, res) => {
 	res.send('Hello World!')

@@ -62,3 +62,37 @@ export const handleLogin = async (req, res) => {
 		res.sendStatus(401)
 	}
 }
+
+export const handleRefreshToken = async (req, res) => {
+	const token = req.cookies?.refreshToken
+
+	if (!token) return res.sendStatus(401)
+
+	const verifiedToken = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET)
+	if (!verifiedToken) {
+		return res.sendStatus(403)
+	}
+
+	const user = await User.findById(verifiedToken.userId)
+	if (user?.refreshToken !== token) return res.sendStatus(403)
+
+	const accessToken = jwt.sign(
+		{ userId: verifiedToken.userId },
+		process.env.ACCESS_TOKEN_SECRET,
+		{ expiresIn: '30s' },
+	)
+	const refreshToken = jwt.sign(
+		{ userId: verifiedToken.userId },
+		process.env.REFRESH_TOKEN_SECRET,
+		{ expiresIn: '1m' },
+	)
+	await User.findByIdAndUpdate(verifiedToken.userId, { refreshToken })
+
+	res.cookie('refreshToken', refreshToken, {
+		httpOnly: true,
+		secure: true,
+		maxAge: 70000,
+	})
+
+	res.json({ accessToken })
+}
