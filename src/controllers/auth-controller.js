@@ -10,11 +10,11 @@ export const handleRegister = async (req, res) => {
 			.json({ message: 'Username and password are required.' })
 
 	try {
-		const isDuplicate = await User.findOne({ username })
+		const isDuplicate = await User.findOne({ username }).exec()
 		if (isDuplicate) return res.sendStatus(409)
 
 		const hashedPassword = await bcrypt.hash(password, 10)
-		await User.create({ username, password: hashedPassword })
+		await User.create({ username, password: hashedPassword }).exec()
 
 		res.status(201).json({ success: `New user ${username} created!` })
 	} catch (error) {
@@ -73,7 +73,7 @@ export const handleRefreshToken = async (req, res) => {
 		return res.sendStatus(403)
 	}
 
-	const user = await User.findById(verifiedToken.userId)
+	const user = await User.findById(verifiedToken.userId).exec()
 	if (user?.refreshToken !== token) return res.sendStatus(403)
 
 	const accessToken = jwt.sign(
@@ -86,7 +86,7 @@ export const handleRefreshToken = async (req, res) => {
 		process.env.REFRESH_TOKEN_SECRET,
 		{ expiresIn: '1m' },
 	)
-	await User.findByIdAndUpdate(verifiedToken.userId, { refreshToken })
+	await User.findByIdAndUpdate(verifiedToken.userId, { refreshToken }).exec()
 
 	res.cookie('refreshToken', refreshToken, {
 		httpOnly: true,
@@ -95,4 +95,30 @@ export const handleRefreshToken = async (req, res) => {
 	})
 
 	res.json({ accessToken })
+}
+
+export const handleLogout = async (req, res) => {
+	//Is there refresh cookie?
+	const token = req.cookies?.refreshToken
+	if (!token) return res.sendStatus(204)
+
+	//Is the cookie valid?
+	const verifiedToken = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, {
+		ignoreExpiration: true,
+	})
+	if (!verifiedToken) {
+		res.clearCookie('refreshToken', { httpOnly: true, secure: true })
+		return res.sendStatus(204)
+	}
+
+	const user = await User.findById(verifiedToken.userId).exec()
+	if (user?.refreshToken !== token) return res.sendStatus(403)
+
+	await User.findByIdAndUpdate(verifiedToken.userId, {
+		refreshToken: '',
+	}).exec()
+
+	res.clearCookie('refreshToken', { httpOnly: true, secure: true })
+
+	res.sendStatus(204)
 }
