@@ -35,6 +35,7 @@ export const handleLogin = async (req, res) => {
 	if (!foundUser) return res.sendStatus(401) //Unauthorized
 
 	const match = await bcrypt.compare(password, foundUser.password)
+	if (!match) return res.sendStatus(401)
 
 	const accessToken = jwt.sign(
 		{ userId: foundUser._id, username: foundUser.username },
@@ -56,11 +57,7 @@ export const handleLogin = async (req, res) => {
 		maxAge: 70000,
 	})
 
-	if (match) {
-		res.status(200).json({ accessToken })
-	} else {
-		res.sendStatus(401)
-	}
+	res.status(200).json({ accessToken })
 }
 
 export const handleRefreshToken = async (req, res) => {
